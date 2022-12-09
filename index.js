@@ -9,7 +9,7 @@ const region = process.env.AWS_REGION;
 const ssmClient = new SSMClient({ region });
 
 const loadTaskDefinitionAsJsObject = async () => {
-  const taskDefinitionFileName = core.getInput('task-definition', { required: true }); //'task-definition.json' 
+  const taskDefinitionFileName = core.getInput('task-definition', { required: true });
 
   const taskDefPath = path.isAbsolute(taskDefinitionFileName) ?
     taskDefinitionFileName : path.join(process.env.GITHUB_WORKSPACE, taskDefinitionFileName);
@@ -23,7 +23,7 @@ const loadTaskDefinitionAsJsObject = async () => {
 }
 
 const findContainerDefinition = (taskDefinition) => {
-  const containerName = core.getInput('container-name', { required: true }); // 'backend-alpha' 
+  const containerName = core.getInput('container-name', { required: true });
   const containerDefinition = taskDefinition.containerDefinitions.find(definition => definition.name === containerName);
 
   if (!containerDefinition) {
@@ -60,7 +60,7 @@ const loadParams = async (Path, NextPage = null) => {
 }
 
 const loadSSMParamsGroupedByType = async () => {
-  const ssmParamPathPattern = core.getInput('ssm-param-path-pattern', { required: false }); //'/alpha/backend/'
+  const ssmParamPathPattern = core.getInput('ssm-param-path-pattern', { required: false });
   const ssmParams = await loadParams(ssmParamPathPattern);
   
   return ssmParams.reduce((current, ssmParam) => {
@@ -86,7 +86,7 @@ const createNewTaskDefinitionFile = (newTaskDefinition) => {
 
 const run = async () => {
   try {
-    const imageURI = core.getInput('image', { required: true }); //'509201486841.dkr.ecr.us-east-2.amazonaws.com/backend:alpha-d24b7a2aea70b42ecc1df2006aeb48871a90c67a'
+    const imageURI = core.getInput('image', { required: true });
 
     const taskDefinition = await loadTaskDefinitionAsJsObject();
     const containerDefinition = findContainerDefinition(taskDefinition);
