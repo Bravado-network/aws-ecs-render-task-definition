@@ -1,0 +1,28 @@
+{
+  "name": "aws-ecs-render-task-definition",
+  "version": "1.0.0",
+  "description": "Creates a new Amazon ECS task definition JSON file with new container image URI, environment and secrets from AWS SSM params",
+  "main": "index.js",
+  "scripts": {
+    "package": "ncc build index.js -o dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bravado-network/aws-ecs-render-task-definition.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Bravado-network/aws-ecs-render-task-definition/issues"
+  },
+  "homepage": "https://github.com/Bravado-network/aws-ecs-render-task-definition#readme",
+  "dependencies": {
+    "@actions/core": "^1.10.0",
+    "@aws-sdk/client-ssm": "^3.226.0",
+    "tmp": "^0.2.1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.36.0"
+  }
+}
