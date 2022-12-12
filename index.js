@@ -59,8 +59,7 @@ const loadParams = async (Path, NextPage = null) => {
   return Parameters;
 }
 
-const loadSSMParamsGroupedByType = async () => {
-  const ssmParamPathPattern = core.getInput('ssm-param-path-pattern', { required: false });
+const loadSSMParamsGroupedByType = async (ssmParamPathPattern) => {
   const ssmParams = await loadParams(ssmParamPathPattern);
   
   return ssmParams.reduce((current, ssmParam) => {
@@ -84,22 +83,36 @@ const createNewTaskDefinitionFile = (newTaskDefinition) => {
   return newTaskDefinitionFile;
 }
 
+const loadEnvironmentVariablesFromSSMIfNecessary = async () => {
+  const ssmParamPathPattern = core.getInput('ssm-param-path-pattern', { required: false });
+
+  if (ssmParamPathPattern) {
+    const ssmParamsByType = await loadSSMParamsGroupedByType(ssmParamPathPattern);
+  
+    return {
+      environment: ssmParamsByType.String.map(convertToTaskDefinitionEnvironment),
+      secrets: ssmParamsByType.SecureString.map(convertToTaskDefinitionSecret)
+    };
+  }
+
+  return {};
+}
+
 const run = async () => {
   try {
     const imageURI = core.getInput('image', { required: true });
 
     const taskDefinition = await loadTaskDefinitionAsJsObject();
     const containerDefinition = findContainerDefinition(taskDefinition);
-    const ssmParamsByType = await loadSSMParamsGroupedByType();
+    const environmentVariablesReplacement = await loadEnvironmentVariablesFromSSMIfNecessary();
 
     var newTaskDefinitionFile = createNewTaskDefinitionFile({ 
       ...taskDefinition, 
       containerDefinitions: [
         { 
           ...containerDefinition,
-          image: imageURI,
-          environment: ssmParamsByType.String.map(convertToTaskDefinitionEnvironment),
-          secrets: ssmParamsByType.SecureString.map(convertToTaskDefinitionSecret)
+          ...environmentVariablesReplacement,
+          image: imageURI
         }
       ]
     });
