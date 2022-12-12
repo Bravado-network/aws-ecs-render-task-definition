@@ -57001,7 +57001,7 @@ const loadEnvironmentVariablesFromSSMIfNecessary = async () => {
   const ssmParamPathPattern = core.getInput('ssm-param-path-pattern', { required: false });
 
   if (ssmParamPathPattern) {
-    const ssmParamsByType = await loadSSMParamsGroupedByType();
+    const ssmParamsByType = await loadSSMParamsGroupedByType(ssmParamPathPattern);
   
     return {
       environment: ssmParamsByType.String.map(convertToTaskDefinitionEnvironment),
