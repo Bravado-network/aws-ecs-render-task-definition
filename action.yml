@@ -13,7 +13,7 @@ inputs:
   image:
     description: 'The URI of the container image to insert into the ECS task definition'
     required: true
-  ssm-param-path-pattern:
+  ssm-param-paths:
     description: 'Path pattern used to load AWS SSM params and set to container definition as environment and/or secrets.'
     required: false
 outputs:
