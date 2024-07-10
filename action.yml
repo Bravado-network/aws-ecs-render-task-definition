@@ -16,6 +16,9 @@ inputs:
   ssm-param-paths:
     description: 'Path pattern used to load AWS SSM params and set to container definition as environment and/or secrets.'
     required: false
+  environment-variables:
+    description: 'List of env variables to pass to container definition'
+    required: false
 outputs:
   task-definition:
     description: 'The path to the rendered task definition file'
