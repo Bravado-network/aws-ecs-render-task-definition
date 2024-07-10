@@ -2,7 +2,7 @@ import fs from "fs";
 import tmp from "tmp";
 import path from "path";
 import { readFile } from 'fs/promises';
-const core = require("@actions/core");
+const core = require("@actions/core")
 import { GetParametersByPathCommand, SSMClient } from "@aws-sdk/client-ssm";
 
 const region = process.env.AWS_REGION;
@@ -18,7 +18,7 @@ const loadTaskDefinitionAsJsObject = async () => {
     throw new Error(`Task definition file does not exist: ${taskDefinitionFileName}`);
   }
 
-  const taskDefinitionContent = await readFile(taskDefPath);
+  const taskDefinitionContent = await readFile(taskDefPath)
   return JSON.parse(taskDefinitionContent);
 }
 
@@ -59,6 +59,16 @@ const loadParamsFromAWS = async (Path, NextPage = null) => {
   return Parameters;
 }
 
+/***
+ * Loads SSM params for the paths specified in ssmParamPaths argument and returns them in order. It'll return and object
+ * where each key represents the order of the paths in ssmParamPaths argument. For example, for a given list ['/dev-base/backend', '/dev4/backend']
+ * it'll return an object where the key 0 will have the SSM params for '/dev-base/backend' and key 1 will hava the SSM params
+ * for '/dev4/backend'
+ * 
+ * @param ssmParamPaths - a list of SSM param paths. For example: ['/dev-base/backend', '/dev4/backend']
+ * @returns object representing SSM params hierarchy like the following:
+ *    { 0: [{ Name: '/dev-base/backend/BASE_URL' }], 1: [{ Name: '/dev4/backend/RAILS_ENV' }] }
+ */
 const loadSSMParamsGroupingByPrecedence = async (ssmParamPaths) => {
   const ssmParamPathsList = ssmParamPaths.split(',').map((ssmParamPath) => ssmParamPath.trim())
 
@@ -74,6 +84,15 @@ const loadSSMParamsGroupingByPrecedence = async (ssmParamPaths) => {
   }, {});
 }
 
+/**
+ * Applies hierarchy to SSM params received in ssmParamsByPrecedence arg.
+ * It'll override SSM params based on the hierarchy represented by ssmParamsByPrecedence arg.
+ * For example, if the ssmParamsByPrecedence argument is:
+ *  { 0: [{ Name: '/dev-base/backend/RAILS_ENV' }], 1: [{ Name: '/dev4/backend/RAILS_ENV' }] }
+ * Then it'll return [{ Name: '/dev4/backend/RAILS_ENV' }]
+ * 
+ * @param {*} ssmParamsByPrecedence - object representing SSM params hierarchy 
+ */
 const joinSSMParamsByApplyingHierarchy = (ssmParamsByPrecedence) => {
   const overriddenSsmParamsMap = Object.keys(ssmParamsByPrecedence)
     .reduce((overriddenParams, ssmParamPathIndex) => {
@@ -130,50 +149,20 @@ const loadEnvironmentVariablesFromSSMIfNecessary = async () => {
   return {};
 }
 
-const parsePipelineEnvironmentVariables = () => {
-  const envVarInput = core.getInput('environment-variables', { required: false });
-  if (!envVarInput) {
-    return [];
-  }
-
-  return envVarInput.split('\n').map(envVar => {
-    const [name, value] = envVar.split('=');
-    return { name, value };
-  });
-}
-
-const mergeEnvironmentVariables = (ssmEnvVars, pipelineEnvVars) => {
-  const envVarMap = new Map();
-
-  ssmEnvVars.forEach(envVar => {
-    envVarMap.set(envVar.name, envVar.value);
-  });
-
-  pipelineEnvVars.forEach(envVar => {
-    envVarMap.set(envVar.name, envVar.value);
-  });
-
-  return Array.from(envVarMap.entries()).map(([name, value]) => ({ name, value }));
-}
-
 const run = async () => {
   try {
     const imageURI = core.getInput('image', { required: true });
 
     const taskDefinition = await loadTaskDefinitionAsJsObject();
     const containerDefinition = findContainerDefinition(taskDefinition);
-    const ssmEnvVars = await loadEnvironmentVariablesFromSSMIfNecessary();
-    const pipelineEnvVars = parsePipelineEnvironmentVariables();
-
-    const mergedEnvironment = mergeEnvironmentVariables(ssmEnvVars.environment || [], pipelineEnvVars);
+    const environmentVariablesReplacement = await loadEnvironmentVariablesFromSSMIfNecessary();
 
     var newTaskDefinitionFile = createNewTaskDefinitionFile({ 
       ...taskDefinition, 
       containerDefinitions: [
         { 
           ...containerDefinition,
-          environment: mergedEnvironment,
-          secrets: ssmEnvVars.secrets || [],
+          ...environmentVariablesReplacement,
           image: imageURI
         }
       ]
@@ -186,4 +175,4 @@ const run = async () => {
   }
 }
 
-run();
+run()
