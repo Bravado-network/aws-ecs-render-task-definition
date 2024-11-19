@@ -33,8 +33,6 @@ const findContainerDefinition = (taskDefinition) => {
   return containerDefinition;
 }
 
-const normalizeEnvVarName = (ssmParam) => ssmParam.Name.split("/").reverse()[0];
-
 const convertToTaskDefinitionEnvironment = (ssmParam) => ({
   name: normalizeEnvVarName(ssmParam),
   value: ssmParam.Value
@@ -46,25 +44,44 @@ const convertToTaskDefinitionSecret = (ssmParam) => ({
 });
 
 const loadParamsFromAWS = async (Path, NextPage = null) => {
+  // Extract base path and pattern from the full path
+  const lastSegment = Path.split('/').pop();
+  const pattern = lastSegment.includes('_') ? lastSegment.split('_')[0] + '_' : null;
+  const basePath = pattern ? Path.slice(0, -(lastSegment.length + 1)) : Path;
+
   const { Parameters, NextToken } = await ssmClient.send(new GetParametersByPathCommand({
-    Path,
+    Path: basePath,
+    Recursive: true,
     NextToken: NextPage
   }));
 
+  // Filter parameters based on the pattern if it exists
+  const filteredParams = pattern 
+    ? Parameters.filter(param => {
+        const name = param.Name.split("/").pop();
+        return name.startsWith(pattern);
+      })
+    : Parameters;
+
   if (NextToken) {
     const moreParams = await loadParamsFromAWS(Path, NextToken);
-    return [...Parameters, ...moreParams];
+    return [...filteredParams, ...moreParams];
   }
 
-  return Parameters;
+  return filteredParams;
+}
+
+const normalizeEnvVarName = (ssmParam) => {
+  // Get the last part of the parameter name
+  return ssmParam.Name.split("/").pop();
 }
 
 const loadSSMParamsGroupingByPrecedence = async (ssmParamPaths) => {
-  const ssmParamPathsList = ssmParamPaths.split(',').map((ssmParamPath) => ssmParamPath.trim());
+  const ssmParamPathsList = ssmParamPaths.split(',').map(path => path.trim());
 
   const listOfSsmParams = [];
-  for (const ssmParamPath of ssmParamPathsList) {
-    const params = await loadParamsFromAWS(ssmParamPath);
+  for (const path of ssmParamPathsList) {
+    const params = await loadParamsFromAWS(path);
     listOfSsmParams.push(params);
   }
 
