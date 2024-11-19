@@ -48,6 +48,7 @@ const convertToTaskDefinitionSecret = (ssmParam) => ({
 const loadParamsFromAWS = async (Path, NextPage = null) => {
   const { Parameters, NextToken } = await ssmClient.send(new GetParametersByPathCommand({
     Path,
+    Recursive: true,
     NextToken: NextPage
   }));
 
