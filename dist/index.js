@@ -80867,7 +80867,7 @@ var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 ;// CONCATENATED MODULE: external "fs/promises"
 const promises_namespaceObject = require("fs/promises");
 // EXTERNAL MODULE: ./node_modules/@aws-sdk/client-ssm/dist-cjs/index.js
-var dist_cjs = __nccwpck_require__(66265);
+var client_ssm_dist_cjs = __nccwpck_require__(66265);
 ;// CONCATENATED MODULE: ./index.js
 
 
@@ -80877,7 +80877,7 @@ const core = __nccwpck_require__(24181);
 
 
 const region = process.env.AWS_REGION;
-const ssmClient = new dist_cjs.SSMClient({ region });
+const ssmClient = new client_ssm_dist_cjs.SSMClient({ region });
 
 const loadTaskDefinitionAsJsObject = async () => {
   const taskDefinitionFileName = core.getInput('task-definition', { required: true });
@@ -80904,8 +80904,6 @@ const findContainerDefinition = (taskDefinition) => {
   return containerDefinition;
 }
 
-const normalizeEnvVarName = (ssmParam) => ssmParam.Name.split("/").reverse()[0];
-
 const convertToTaskDefinitionEnvironment = (ssmParam) => ({
   name: normalizeEnvVarName(ssmParam),
   value: ssmParam.Value
@@ -80917,26 +80915,44 @@ const convertToTaskDefinitionSecret = (ssmParam) => ({
 });
 
 const loadParamsFromAWS = async (Path, NextPage = null) => {
+  // Extract base path and pattern from the full path
+  const lastSegment = Path.split('/').pop();
+  const pattern = lastSegment.includes('_') ? lastSegment.split('_')[0] + '_' : null;
+  const basePath = pattern ? Path.slice(0, -(lastSegment.length + 1)) : Path;
+
   const { Parameters, NextToken } = await ssmClient.send(new dist_cjs.GetParametersByPathCommand({
-    Path,
+    Path: basePath,
     Recursive: true,
     NextToken: NextPage
   }));
 
+  // Filter parameters based on the pattern if it exists
+  const filteredParams = pattern 
+    ? Parameters.filter(param => {
+        const name = param.Name.split("/").pop();
+        return name.startsWith(pattern);
+      })
+    : Parameters;
+
   if (NextToken) {
     const moreParams = await loadParamsFromAWS(Path, NextToken);
-    return [...Parameters, ...moreParams];
+    return [...filteredParams, ...moreParams];
   }
 
-  return Parameters;
+  return filteredParams;
+}
+
+const normalizeEnvVarName = (ssmParam) => {
+  // Get the last part of the parameter name
+  return ssmParam.Name.split("/").pop();
 }
 
 const loadSSMParamsGroupingByPrecedence = async (ssmParamPaths) => {
-  const ssmParamPathsList = ssmParamPaths.split(',').map((ssmParamPath) => ssmParamPath.trim());
+  const ssmParamPathsList = ssmParamPaths.split(',').map(path => path.trim());
 
   const listOfSsmParams = [];
-  for (const ssmParamPath of ssmParamPathsList) {
-    const params = await loadParamsFromAWS(ssmParamPath);
+  for (const path of ssmParamPathsList) {
+    const params = await loadParamsFromAWS(path);
     listOfSsmParams.push(params);
   }
 
