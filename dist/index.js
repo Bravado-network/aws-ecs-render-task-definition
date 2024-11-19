@@ -80867,7 +80867,7 @@ var external_path_default = /*#__PURE__*/__nccwpck_require__.n(external_path_);
 ;// CONCATENATED MODULE: external "fs/promises"
 const promises_namespaceObject = require("fs/promises");
 // EXTERNAL MODULE: ./node_modules/@aws-sdk/client-ssm/dist-cjs/index.js
-var client_ssm_dist_cjs = __nccwpck_require__(66265);
+var dist_cjs = __nccwpck_require__(66265);
 ;// CONCATENATED MODULE: ./index.js
 
 
@@ -80877,7 +80877,7 @@ const core = __nccwpck_require__(24181);
 
 
 const region = process.env.AWS_REGION;
-const ssmClient = new client_ssm_dist_cjs.SSMClient({ region });
+const ssmClient = new dist_cjs.SSMClient({ region });
 
 const loadTaskDefinitionAsJsObject = async () => {
   const taskDefinitionFileName = core.getInput('task-definition', { required: true });

@@ -49,7 +49,7 @@ const loadParamsFromAWS = async (Path, NextPage = null) => {
   const pattern = lastSegment.includes('_') ? lastSegment.split('_')[0] + '_' : null;
   const basePath = pattern ? Path.slice(0, -(lastSegment.length + 1)) : Path;
 
-  const { Parameters, NextToken } = await ssmClient.send(new dist_cjs.GetParametersByPathCommand({
+  const { Parameters, NextToken } = await ssmClient.send(new GetParametersByPathCommand({
     Path: basePath,
     Recursive: true,
     NextToken: NextPage
